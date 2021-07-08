@@ -17,8 +17,8 @@ export default function Home() {
           </Link>
         </div>
       </header>
-      <main>
-        <h1 className={styles.mainHead}>The Web App that allows for easy JWT auth.</h1>
+      <main className={styles.main}>
+        <h1>The Web App that allows for easy JWT auth.</h1>
       </main>
     </div>
   )

@@ -1,0 +1,23 @@
+.container {
+  height: 100vh;
+  min-height: 600px;
+  width: 100vw;
+  background-color: #2B2D42;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.container input{
+  width: 40vw;
+  font-size: 2vw;
+  padding: 10px;
+}
+
+.submitButton{
+  font-size: 2vw;
+  width: 40vw;
+  padding: 10px;
+}
