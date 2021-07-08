@@ -12,11 +12,23 @@
 .header{
     grid-area: header;
     display: flex;
-    align-content: center;
+    align-items: center;
+    justify-content: space-between;
 }
 .leftHeader{
-    justify-self: flex-start;
+    margin-left: 10vw;
 }
 .rightHeader{
-    justify-self: flex-end;
+    margin-right: 10vw;
+}
+.rightHeader a{
+    margin-left: 3vw;
+}
+
+.main{
+    grid-area: main;
+    display: flex;
+}
+.mainHead{
+    text-align: center;
 }
