@@ -8,16 +8,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .container input{
   width: 40vw;
   font-size: 2vw;
   padding: 10px;
+  outline: none;
+  border: none;
+  border-bottom: 1px solid black;
 }
 
 .submitButton{
   font-size: 2vw;
-  width: 40vw;
+  width: 40.5vw;
   padding: 10px;
 }

@@ -46,7 +46,20 @@ export default function Signup() {
     
     errorString += '</ul>'
     if ( validFirstName && validLastName && validEmail && validPass && passMatch){
-      console.log("Ready for API call")
+      const resp = await fetch("http://localhost:5000/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "fname": firstName,
+          "lname": lastName,
+          "email": email,
+          "pass": pass
+        })
+      })
+      const respJSON = await resp.json()
+      console.log(respJSON)
     }else{
       setErrors(true)
       document.getElementById('errors').innerHTML = errorString
@@ -55,7 +68,6 @@ export default function Signup() {
 
   return(
     <div className={styles.container}>
-      {console.log(errors)}
       <div className={styles.error} id='errors' style={ errors? {display: 'block'}: {display: 'none'}}>
         
       </div>
