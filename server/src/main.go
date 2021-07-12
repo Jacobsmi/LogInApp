@@ -21,33 +21,36 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("Error reading JSON in request")
 		fmt.Println(err)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "json_read_err"})
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "json_read_err"})
 		return
 	}
 
-	fmt.Println(newUser)
 	// Hash password
 	passBytes, err := bcrypt.GenerateFromPassword([]byte(newUser.Pass), 8)
 	if err != nil {
 		fmt.Println("Error reading JSON in request")
 		fmt.Println(err)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "json_read_err"})
 		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "json_read_err"})
 		return
 	}
 
 	// Try to store in the database
 	sqlStatement := `INSERT INTO users(fname, lname, email, pass) VALUES($1, $2, $3, $4) RETURNING id`
 
-	_, err = dbutils.DbConn.Exec(sqlStatement, newUser.Fname, newUser.Lname, newUser.Email, string(passBytes))
+	row := dbutils.DbConn.QueryRow(sqlStatement, newUser.Fname, newUser.Lname, newUser.Email, string(passBytes))
+	err = row.Scan(&newUser.Id)
 	if err != nil {
+		// Catch Duplicate error here
 		fmt.Println("Error writing to the DB")
 		fmt.Println(err)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "db_insert_err"})
 		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "db_insert_err"})
 		return
 	}
+
+	fmt.Println(newUser)
 	// Get the new user's ID from the result of the last query
 
 	// Create a JWT based on ID
