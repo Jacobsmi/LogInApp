@@ -13,3 +13,8 @@
 - Change directory into the client directory
 - Run `npm i` to install npm dependencies
 
+## Setting up the server
+
+## Other Notes
+
+- `nodemon --exec go run main.go --signal SIGTERM` can be used to run the server with live updates (requires nodemon installed)
