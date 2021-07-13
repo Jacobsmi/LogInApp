@@ -80,6 +80,7 @@ export default function Signup() {
 
   return(
     <div className={styles.container}>
+      <h1>Sign Up</h1> 
       <div className={styles.error} id='errors' style={ errors? {display: 'block'}: {display: 'none'}}>
         
       </div>
