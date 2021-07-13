@@ -1,8 +1,9 @@
 import styles from '../styles/Signup.module.css'
 import {useState} from 'react'
+import { Router, useRouter } from 'next/router'
 
 export default function Signup() {
-  
+  const router = useRouter()
   const [errors, setErrors] = useState(false)
 
   async function processSignUp(){
@@ -39,18 +40,19 @@ export default function Signup() {
 
     let passMatch = true
     const cpass = document.getElementById('signup-cpass').value
-    if (cpass !== pass) {
-      errorString += '<li>Passwords do not match</li>'
+    if (cpass != pass) {
+      console.log("Hitting if statement")
+      //errorString += '<li>Passwords do not match</li>'
       passMatch = false
     }
     
-    errorString += '</ul>'
     if ( validFirstName && validLastName && validEmail && validPass && passMatch){
       const resp = await fetch("http://localhost:5000/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           "fname": firstName,
           "lname": lastName,
@@ -59,11 +61,21 @@ export default function Signup() {
         })
       })
       const respJSON = await resp.json()
-      console.log(respJSON)
+      if (respJSON.success == false){
+        setErrors(true)
+        if (respJSON.msg == "duplicate_error"){
+          errorString += "<li>E-Mail already exists</li>"
+        }else{
+          errorString += "<li>Server Error: Please see server or contact administrator for more information</li>"
+        }
+      }else if(respJSON.success == true){
+        router.push("/home")
+      }
     }else{
       setErrors(true)
-      document.getElementById('errors').innerHTML = errorString
     }
+    errorString += '</ul>'
+    document.getElementById('errors').innerHTML = errorString
   }
 
   return(

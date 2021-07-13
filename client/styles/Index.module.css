@@ -1,0 +1,38 @@
+.container {
+  height: 100vh;
+  min-height: 600px;
+  width: 100vw;
+  background-color: #2B2D42;
+  display: grid;
+  grid-template-rows: 0.15fr 0.85fr;
+  grid-template-areas: 'header' 'main';
+  color: white;
+}
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leftHeader {
+  margin-left: 10vw;
+}
+
+.rightHeader {
+  margin-right: 10vw;
+}
+
+.rightHeader a {
+  margin-left: 3vw;
+}
+
+.main {
+  grid-area: main;
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
