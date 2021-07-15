@@ -1,6 +1,6 @@
 import styles from '../styles/Signup.module.css'
 import {useState} from 'react'
-import { Router, useRouter } from 'next/router'
+import { useRouter } from 'next/router'
 
 export default function Signup() {
   const router = useRouter()

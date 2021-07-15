@@ -1,11 +1,13 @@
 import styles from '../styles/Login.module.css'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 export default function Login() {
   const [errors, setErrors] = useState(false)
+  const router = useRouter()
 
   async function processLogin() {
-    errorString = 'Errors:<ul>'
+    let errorString = 'Errors:<ul>'
     setErrors(false)
 
     let validEmail = true
@@ -23,6 +25,7 @@ export default function Login() {
     }
 
     if (validEmail && validPass) {
+      console.log("Making API call")
       const resp = await fetch("http://localhost:5000/login", {
         method: "POST",
         headers: {
@@ -35,7 +38,24 @@ export default function Login() {
         })
       })
       const respJSON = await resp.json()
+      console.log(respJSON)
+      if (respJSON.success === false) {
+        setErrors(true)
+        if (respJSON.msg === 'user_not_exist') {
+          errorString += '<li>User with that email does not exist</li>'
+        } else if (respJSON.msg === "wrong_pass") {
+          errorString += '<li>Incorrect Password</li>'
+        } else {
+          errorString += '<li>Server error when querying for user. Please see server or contact administrator</li>'
+        }
+      } else if (respJSON.success === true) {
+        router.push("/home")
+      }
+    } else {
+      setErrors(true)
     }
+    errorString += '</ul>'
+    document.getElementById('errors').innerHTML = errorString
   }
 
   return (

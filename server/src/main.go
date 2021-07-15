@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -28,6 +29,35 @@ func processError(err error, errString string, apiMsg string, w http.ResponseWri
 	fmt.Println(err)
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": apiMsg})
+}
+
+func generateAndSendCookie(w http.ResponseWriter, id int) {
+	// Create an expiration time for the JWT
+	expTime := time.Now().Add(60 * time.Minute)
+	// Create a list of claims for the JWT specifically the id and an expiration time
+	jwtClaims := claims{
+		id: id,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expTime.Unix(),
+		},
+	}
+	// Generates the token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
+	// Returns the complete signed token
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		processError(err, "Error Creating Token", "token_gen_error", w, http.StatusInternalServerError)
+		return
+	}
+	// Set the cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    tokenString,
+		Expires:  expTime,
+		HttpOnly: true,
+		Secure:   true,
+	})
+
 }
 
 func signup(w http.ResponseWriter, r *http.Request) {
@@ -63,43 +93,50 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		processError(err, "Unhandled DB error", "db_insert_error", w, http.StatusInternalServerError)
 		return
 	}
-	// Create an expiration time for the JWT
-	expTime := time.Now().Add(60 * time.Minute)
-	// Create a list of claims for the JWT specifically the id and an expiration time
-	jwtClaims := claims{
-		id: newUser.Id,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expTime.Unix(),
-		},
-	}
-	// Generates the token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims)
-	// Returns the complete signed token
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		processError(err, "Error Creating Token", "token_gen_error", w, http.StatusInternalServerError)
-		return
-	}
-	// Set the cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
-		Value:    tokenString,
-		Expires:  expTime,
-		HttpOnly: true,
-		Secure:   true,
-	})
+
+	generateAndSendCookie(w, newUser.Id)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "msg": nil})
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+	// Holds the user given in the request
+	var givenUser models.User
 
-	err := json.NewDecoder(r.Body).Decode(&user)
+	// Holds the user scanned out of the database
+	var scannedUser models.User
+
+	err := json.NewDecoder(r.Body).Decode(&givenUser)
 	if err != nil {
 		processError(err, "Error Processing JSON", "json_parse_error", w, http.StatusBadRequest)
 		return
 	}
+
+	// Create the SQL statement that gets the id and password for the retrieved user
+	sqlStatement := `SELECT id, pass FROM users WHERE email=$1`
+	// Execute the query and get the return back from the database
+	row := dbutils.DbConn.QueryRow(sqlStatement, givenUser.Email)
+	err = row.Scan(&scannedUser.Id, &scannedUser.Pass)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			processError(err, "No existing user", "user_not_exist", w, http.StatusBadRequest)
+			return
+		}
+		processError(err, "Error Querying DB", "db_query_error", w, http.StatusInternalServerError)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(scannedUser.Pass), []byte(givenUser.Pass))
+	if err != nil {
+		if string(err.Error()) == "crypto/bcrypt: hashedPassword is not the hash of the given password" {
+			processError(err, "Wrong Password", "wrong_pass", w, http.StatusBadRequest)
+		} else {
+			fmt.Println("Other bcrypt error")
+		}
+		return
+	}
+
+	generateAndSendCookie(w, scannedUser.Id)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "msg": nil})
 }
