@@ -23,26 +23,27 @@ type claims struct {
 
 var jwtKey = []byte("my-sercret-key")
 
+func processError(err error, errString string, apiMsg string, w http.ResponseWriter, status int) {
+	fmt.Println(errString)
+	fmt.Println(err)
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": apiMsg})
+}
+
 func signup(w http.ResponseWriter, r *http.Request) {
 	// Create the new user object and read the JSON from the request into new user
 	var newUser models.User
 	err := json.NewDecoder(r.Body).Decode(&newUser)
 	// Handle an error in reading the JSON by printing the error in the console and returning an error message
 	if err != nil {
-		fmt.Println("Error reading JSON in request")
-		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "json_read_err"})
+		processError(err, "Error Processing JSON", "json_parse_error", w, http.StatusBadRequest)
 		return
 	}
 
 	// Hash password
 	passBytes, err := bcrypt.GenerateFromPassword([]byte(newUser.Pass), 8)
 	if err != nil {
-		fmt.Println("Error reading JSON in request")
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "hash_gen_error"})
+		processError(err, "Error Hashing Password", "hash_gen_error", w, http.StatusInternalServerError)
 		return
 	}
 
@@ -55,17 +56,11 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if pgErr, ok := err.(*pq.Error); ok {
 			if string(pgErr.Code) == "23505" {
-				fmt.Println("Duplicate error")
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "duplicate_error"})
+				processError(err, "Duplicate User", "duplicate_error", w, http.StatusBadRequest)
 				return
 			}
 		}
-		// Catch Duplicate error here
-		fmt.Println("Error writing to the DB")
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "db_insert_err"})
+		processError(err, "Unhandled DB error", "db_insert_error", w, http.StatusInternalServerError)
 		return
 	}
 	// Create an expiration time for the JWT
@@ -82,10 +77,7 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	// Returns the complete signed token
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
-		fmt.Println("Error creating the token")
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "msg": "token_gen_error"})
+		processError(err, "Error Creating Token", "token_gen_error", w, http.StatusInternalServerError)
 		return
 	}
 	// Set the cookie
@@ -100,10 +92,22 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "msg": nil})
 }
 
+func login(w http.ResponseWriter, r *http.Request) {
+	var user models.User
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		processError(err, "Error Processing JSON", "json_parse_error", w, http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "msg": nil})
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/signup", signup)
-
+	r.HandleFunc("/login", login)
 	defer dbutils.DbConn.Close()
 
 	originsOk := handlers.AllowedOrigins([]string{"http://localhost:3000"})
